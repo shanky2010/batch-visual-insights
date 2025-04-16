@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for data processing
  */
@@ -281,7 +282,7 @@ export const prepareScatterPlotData = (
       {
         label: 'Data Points',
         data: filteredPoints,
-        backgroundColor: ['#4361EE'] // Fixed: Now properly using a string array
+        backgroundColor: ['#4361EE'] // Now properly using a string array
       }
     ]
   };
