@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +17,6 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
     );
   }
   
-  // Transform data for recharts
   const chartData = data.labels.map((label, index) => {
     const dataPoint: any = { name: label };
     
@@ -29,14 +27,13 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
     return dataPoint;
   });
   
-  // Get colors from the dataset
   const colors = data.datasets[0].backgroundColor || 
     ['#4361EE', '#3A0CA3', '#7209B7', '#F72585', '#4CC9F0', '#560BAD', '#480CA8', '#3A0CA3'];
   
   return (
-    <Card className="w-full">
+    <Card className="w-full bg-gradient-to-br from-gray-900 to-gray-800 text-white border-none shadow-xl">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-gray-100">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
@@ -46,29 +43,42 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
                 data={chartData}
                 margin={{ top: 5, right: 30, left: 20, bottom: 70 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis 
                   dataKey="name"
                   angle={-45}
                   textAnchor="end"
                   height={80}
-                  tick={{ fontSize: 12 }}
+                  tick={{ fill: '#9CA3AF', fontSize: 12 }}
                 />
-                <YAxis />
-                <Tooltip />
-                <Legend />
+                <YAxis tick={{ fill: '#9CA3AF' }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 12px'
+                  }}
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Legend 
+                  wrapperStyle={{
+                    color: '#fff'
+                  }}
+                />
                 {data.datasets.map((dataset, index) => (
                   <Bar 
                     key={index} 
                     dataKey={dataset.label} 
                     fill={Array.isArray(colors) ? colors[index % colors.length] : colors}
+                    className="hover:opacity-80 transition-opacity duration-300"
                   />
                 ))}
               </RechartsBarChart>
             </ResponsiveContainer>
           ) : (
             <div className="h-full flex items-center justify-center">
-              <p className="text-gray-500">No data available for bar chart</p>
+              <p className="text-gray-400">No data available for bar chart</p>
             </div>
           )}
         </div>

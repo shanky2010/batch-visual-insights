@@ -10,6 +10,7 @@ import BarChart from './visualizations/BarChart';
 import PieChart from './visualizations/PieChart';
 import Histogram from './visualizations/Histogram';
 import ScatterPlot from './visualizations/ScatterPlot';
+import TreeMap from './visualizations/TreeMap';
 import { 
   DataFile, 
   DatasetSummary,
@@ -18,7 +19,8 @@ import {
   prepareBarChartData,
   preparePieChartData,
   prepareHistogramData,
-  prepareScatterPlotData
+  prepareScatterPlotData,
+  prepareTreeMapData
 } from '@/utils/dataUtils';
 
 interface DataAnalysisProps {
@@ -54,7 +56,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
     y: null
   });
 
-  // When files change, update column options
   useEffect(() => {
     const options: ColumnOption[] = [];
     
@@ -73,7 +74,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
     
     setColumnOptions(options);
     
-    // Reset selections if no files or columns
     if (options.length === 0) {
       setSelectedColumns({});
       setSummaries({});
@@ -87,7 +87,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
     }
   }, [files]);
 
-  // Perform analysis when selected columns change
   const performAnalysis = () => {
     if (Object.keys(selectedColumns).length === 0) {
       toast.error("Please select at least one column to analyze");
@@ -97,7 +96,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
     setIsAnalyzing(true);
     
     try {
-      // Calculate statistics for each selected column
       const newSummaries: {[key: string]: DatasetSummary} = {};
       
       Object.entries(selectedColumns).forEach(([key, columnOption]) => {
@@ -114,60 +112,53 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
       
       setSummaries(newSummaries);
       
-      // Prepare chart data for the first selected column
       if (Object.keys(selectedColumns).length > 0) {
         const firstKey = Object.keys(selectedColumns)[0];
         const firstColumn = selectedColumns[firstKey];
         const file = files.find(f => f.id === firstColumn.fileId);
         
         if (file) {
-          // Find a suitable category column for the x-axis (first non-numeric column or use index)
           const firstNonNumericColumn = file.headers.findIndex((_, idx) => {
-            // Skip current column and check if column contains text values
-            if (idx === firstColumn.columnIndex) return false;
-            
-            const columnValues = file.data.slice(1).map(row => row[idx]);
-            const isAllNumeric = columnValues.every(val => !isNaN(parseFloat(val)));
-            
-            return !isAllNumeric;
-          });
+          if (idx === firstColumn.columnIndex) return false;
           
-          const labelColumnIndex = firstNonNumericColumn !== -1 ? firstNonNumericColumn : 0;
+          const columnValues = file.data.slice(1).map(row => row[idx]);
+          const isAllNumeric = columnValues.every(val => !isNaN(parseFloat(val)));
           
-          // Prepare various chart data
-          const barData = prepareBarChartData(
-            file.data, 
-            labelColumnIndex, 
-            firstColumn.columnIndex
-          );
-          
-          const pieData = preparePieChartData(
-            file.data, 
-            labelColumnIndex, 
-            firstColumn.columnIndex
-          );
-          
-          const histogramData = prepareHistogramData(
-            file.data,
-            firstColumn.columnIndex
-          );
-          
-          setChartData({
-            bar: barData,
-            pie: pieData,
-            histogram: histogramData,
-            scatter: null // This will be handled separately
-          });
-        }
+          return !isAllNumeric;
+        });
+        
+        const labelColumnIndex = firstNonNumericColumn !== -1 ? firstNonNumericColumn : 0;
+        
+        const barData = prepareBarChartData(
+          file.data, 
+          labelColumnIndex, 
+          firstColumn.columnIndex
+        );
+        
+        const pieData = preparePieChartData(
+          file.data, 
+          labelColumnIndex, 
+          firstColumn.columnIndex
+        );
+        
+        const histogramData = prepareHistogramData(
+          file.data,
+          firstColumn.columnIndex
+        );
+        
+        setChartData({
+          bar: barData,
+          pie: pieData,
+          histogram: histogramData,
+          scatter: null
+        });
       }
       
-      // Handle scatter plot if we have selections for both axes
       if (scatterplotConfig.x && scatterplotConfig.y) {
         const xFile = files.find(f => f.id === scatterplotConfig.x?.fileId);
         const yFile = files.find(f => f.id === scatterplotConfig.y?.fileId);
         
         if (xFile && yFile && xFile.id === yFile.id) {
-          // Both columns are from the same file
           const scatterData = prepareScatterPlotData(
             xFile.data,
             scatterplotConfig.x.columnIndex,
@@ -190,12 +181,10 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
     }
   };
 
-  // Generate a unique key for a column selection
   const generateColumnKey = (columnOption: ColumnOption) => {
     return `${columnOption.fileId}-${columnOption.columnIndex}`;
   };
 
-  // Handle column selection
   const handleColumnSelect = (columnOption: ColumnOption) => {
     const key = generateColumnKey(columnOption);
     
@@ -205,7 +194,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
     }));
   };
 
-  // Remove a column from selection
   const removeColumn = (key: string) => {
     setSelectedColumns(prev => {
       const newSelections = { ...prev };
@@ -220,7 +208,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
     });
   };
 
-  // Export analysis results
   const exportResults = () => {
     try {
       const results: any = {
@@ -228,7 +215,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
         timestamp: new Date().toISOString()
       };
       
-      // Add statistics for each selected column
       Object.entries(summaries).forEach(([key, summary]) => {
         const columnOption = selectedColumns[key];
         
@@ -243,7 +229,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
         }
       });
       
-      // Convert to JSON and create download
       const jsonString = JSON.stringify(results, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -254,7 +239,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
       document.body.appendChild(a);
       a.click();
       
-      // Clean up
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
@@ -267,8 +251,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
 
   return (
     <div className="space-y-6">
-      {/* Column Selection */}
-      <Card>
+      <Card className="border-none bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-xl">
         <CardContent className="pt-6">
           <div className="space-y-4">
             <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
@@ -321,7 +304,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
               </Button>
             </div>
             
-            {/* Display selected columns */}
             {Object.keys(selectedColumns).length > 0 && (
               <div className="mt-4">
                 <h3 className="text-sm font-medium text-gray-500 mb-2">Selected columns:</h3>
@@ -347,7 +329,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
         </CardContent>
       </Card>
 
-      {/* Analysis Tabs */}
       {Object.keys(summaries).length > 0 && (
         <Tabs
           defaultValue="statistics"
@@ -355,14 +336,39 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
           onValueChange={setSelectedTab}
           className="w-full"
         >
-          <TabsList className="mb-6 grid w-full grid-cols-4">
-            <TabsTrigger value="statistics">Statistics</TabsTrigger>
-            <TabsTrigger value="barcharts">Bar & Pie Charts</TabsTrigger>
-            <TabsTrigger value="histograms">Histograms</TabsTrigger>
-            <TabsTrigger value="scatterplots">Scatter Plots</TabsTrigger>
+          <TabsList className="mb-6 grid w-full grid-cols-5 bg-gradient-to-r from-gray-900 to-gray-800 p-1 rounded-xl">
+            <TabsTrigger 
+              value="statistics"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+            >
+              Statistics
+            </TabsTrigger>
+            <TabsTrigger 
+              value="barcharts"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+            >
+              Bar & Pie
+            </TabsTrigger>
+            <TabsTrigger 
+              value="histograms"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+            >
+              Histograms
+            </TabsTrigger>
+            <TabsTrigger 
+              value="scatterplots"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+            >
+              Scatter Plots
+            </TabsTrigger>
+            <TabsTrigger 
+              value="treemap"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+            >
+              TreeMap
+            </TabsTrigger>
           </TabsList>
           
-          {/* Statistics Tab */}
           <TabsContent value="statistics" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Object.entries(summaries).map(([key, summary]) => {
@@ -379,7 +385,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
             </div>
           </TabsContent>
           
-          {/* Bar Charts Tab */}
           <TabsContent value="barcharts" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {chartData.bar && (
@@ -404,11 +409,9 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
             </div>
           </TabsContent>
           
-          {/* Histograms Tab */}
           <TabsContent value="histograms" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {Object.entries(selectedColumns).map(([key, columnOption]) => {
-                // Generate histogram data for each selected column
                 const file = files.find(f => f.id === columnOption.fileId);
                 
                 if (!file) return null;
@@ -435,7 +438,6 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
             </div>
           </TabsContent>
           
-          {/* Scatter Plots Tab */}
           <TabsContent value="scatterplots" className="space-y-6">
             <Card>
               <CardContent className="pt-6">
@@ -555,12 +557,34 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
               </div>
             )}
           </TabsContent>
+          
+          <TabsContent value="treemap" className="space-y-6">
+            <div className="grid grid-cols-1 gap-6">
+              {Object.entries(selectedColumns).map(([key, columnOption]) => {
+                const file = files.find(f => f.id === columnOption.fileId);
+                
+                if (!file) return null;
+                
+                const treeMapData = prepareTreeMapData(
+                  file.data,
+                  columnOption.columnIndex
+                );
+                
+                return (
+                  <TreeMap
+                    key={key}
+                    data={treeMapData}
+                    title={`TreeMap: ${columnOption.fileName} - ${columnOption.columnName}`}
+                  />
+                );
+              })}
+            </div>
+          </TabsContent>
         </Tabs>
       )}
       
-      {/* Empty state */}
       {files.length > 0 && Object.keys(summaries).length === 0 && (
-        <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-lg text-center">
+        <div className="flex flex-col items-center justify-center p-12 bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg text-center text-white">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
             <BarChart3 className="w-8 h-8 text-data-blue" aria-hidden="true" />
           </div>

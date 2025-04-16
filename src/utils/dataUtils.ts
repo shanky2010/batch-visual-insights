@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for data processing
  */
@@ -308,4 +307,24 @@ export const prepareScatterPlotData = (
       }
     ]
   };
+};
+
+// Prepare data for a treemap visualization
+export const prepareTreeMapData = (
+  data: any[][], 
+  valueColumnIndex: number,
+  limit: number = 10
+): { name: string; value: number }[] => {
+  // Skip header row and extract data
+  const extractedData = data.slice(1, limit + 1).map(row => ({
+    name: `Category ${row[0]}`,
+    value: parseFloat(row[valueColumnIndex])
+  }));
+  
+  // Filter out non-numeric values and sort by value
+  const filteredData = extractedData
+    .filter(item => !isNaN(item.value))
+    .sort((a, b) => b.value - a.value);
+  
+  return filteredData;
 };
