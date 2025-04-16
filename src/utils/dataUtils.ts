@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for data processing
  */
@@ -133,7 +132,7 @@ export const prepareBarChartData = (
   data: any[][], 
   labelColumnIndex: number, 
   valueColumnIndex: number,
-  limit: number = 10 // Limit the number of data points
+  limit: number = 10
 ): ChartData => {
   // Skip header row and extract data
   const extractedData = data.slice(1, limit + 1).map(row => ({
@@ -141,14 +140,16 @@ export const prepareBarChartData = (
     value: parseFloat(row[valueColumnIndex])
   }));
   
-  // Filter out non-numeric values
-  const filteredData = extractedData.filter(item => !isNaN(item.value));
+  // Filter out non-numeric values and sort by value
+  const filteredData = extractedData
+    .filter(item => !isNaN(item.value))
+    .sort((a, b) => b.value - a.value); // Sort in descending order
   
   // Prepare labels and data for the chart
   const labels = filteredData.map(item => item.label);
   const values = filteredData.map(item => item.value);
   
-  // Generate colors
+  // Enhanced color palette
   const colors = [
     '#4361EE', '#3A0CA3', '#7209B7', '#F72585', '#4CC9F0', 
     '#560BAD', '#480CA8', '#3A0CA3', '#3F37C9', '#4361EE'
@@ -161,6 +162,7 @@ export const prepareBarChartData = (
         label: 'Value',
         data: values,
         backgroundColor: colors,
+        borderColor: colors.map(color => color.replace('1)', '0.8)')),
         borderWidth: 1
       }
     ]
@@ -172,7 +174,7 @@ export const preparePieChartData = (
   data: any[][], 
   labelColumnIndex: number, 
   valueColumnIndex: number,
-  limit: number = 8 // Limit the number of data points for pie chart
+  limit: number = 8
 ): ChartData => {
   // Skip header row and extract data
   const extractedData = data.slice(1, limit + 1).map(row => ({
@@ -180,14 +182,29 @@ export const preparePieChartData = (
     value: parseFloat(row[valueColumnIndex])
   }));
   
-  // Filter out non-numeric values
-  const filteredData = extractedData.filter(item => !isNaN(item.value));
+  // Filter out non-numeric values and sort by value
+  const filteredData = extractedData
+    .filter(item => !isNaN(item.value))
+    .sort((a, b) => b.value - a.value); // Sort in descending order
+  
+  // Calculate total for percentage
+  const total = filteredData.reduce((sum, item) => sum + item.value, 0);
+  
+  // Filter out items less than 1% and combine them into "Others"
+  const significantData = filteredData.filter(item => (item.value / total) >= 0.01);
+  const otherSum = filteredData
+    .filter(item => (item.value / total) < 0.01)
+    .reduce((sum, item) => sum + item.value, 0);
+  
+  if (otherSum > 0) {
+    significantData.push({ label: 'Others', value: otherSum });
+  }
   
   // Prepare labels and data for the chart
-  const labels = filteredData.map(item => item.label);
-  const values = filteredData.map(item => item.value);
+  const labels = significantData.map(item => item.label);
+  const values = significantData.map(item => item.value);
   
-  // Generate colors
+  // Enhanced color palette
   const colors = [
     '#4361EE', '#3A0CA3', '#7209B7', '#F72585', '#4CC9F0', 
     '#560BAD', '#480CA8', '#3A0CA3'
@@ -266,7 +283,7 @@ export const prepareScatterPlotData = (
   data: any[][], 
   xColumnIndex: number,
   yColumnIndex: number,
-  limit: number = 100 // Limit the number of data points
+  limit: number = 100
 ): any => {
   // Skip header row and extract data
   const points = data.slice(1, limit + 1).map(row => ({
@@ -282,7 +299,11 @@ export const prepareScatterPlotData = (
       {
         label: 'Data Points',
         data: filteredPoints,
-        backgroundColor: ['#4361EE'] // Now properly using a string array
+        backgroundColor: ['#4361EE'],
+        pointBackgroundColor: '#4361EE',
+        pointBorderColor: '#3A0CA3',
+        pointRadius: 5,
+        pointHoverRadius: 8
       }
     ]
   };
