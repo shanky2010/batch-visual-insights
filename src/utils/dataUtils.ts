@@ -282,7 +282,7 @@ export const prepareScatterPlotData = (
       {
         label: 'Data Points',
         data: filteredPoints,
-        backgroundColor: '#4361EE'
+        backgroundColor: ['#4361EE'] // Make this an array to fix the type error
       }
     ]
   };

@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataFile } from '@/utils/dataUtils';
 import FileUpload from '@/components/FileUpload';
 import DataAnalysis from '@/components/DataAnalysis';
-import { ChartBar, FileCsv, LayoutDashboard } from 'lucide-react';
+import { BarChart3, FileText, LayoutDashboard } from 'lucide-react';
 
 const Index = () => {
   const [files, setFiles] = useState<DataFile[]>([]);
@@ -33,11 +32,11 @@ const Index = () => {
           <div className="bg-white rounded-lg shadow p-4">
             <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:w-auto lg:inline-grid">
               <TabsTrigger value="upload" className="flex items-center space-x-2">
-                <FileCsv className="h-4 w-4" />
+                <FileText className="h-4 w-4" />
                 <span>Upload Files</span>
               </TabsTrigger>
               <TabsTrigger value="analyze" className="flex items-center space-x-2">
-                <ChartBar className="h-4 w-4" />
+                <BarChart3 className="h-4 w-4" />
                 <span>Analyze Data</span>
               </TabsTrigger>
               <TabsTrigger value="dashboard" className="flex items-center space-x-2">
@@ -53,7 +52,7 @@ const Index = () => {
             {files.length > 0 && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start">
                 <div className="bg-blue-100 rounded-full p-2 mr-4">
-                  <FileCsv className="h-5 w-5 text-blue-600" />
+                  <FileText className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
                   <h3 className="font-medium text-blue-900">Files Ready for Analysis</h3>
@@ -72,7 +71,7 @@ const Index = () => {
             ) : (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileCsv className="h-8 w-8 text-gray-400" aria-hidden="true" />
+                  <FileText className="h-8 w-8 text-gray-400" aria-hidden="true" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Files Uploaded</h3>
                 <p className="text-gray-500 max-w-md mx-auto">
@@ -90,7 +89,7 @@ const Index = () => {
                   <div className="space-y-4">
                     {files.map((file) => (
                       <div key={file.id} className="flex items-start space-x-4 p-3 bg-gray-50 rounded-md">
-                        <FileCsv className="h-5 w-5 text-data-blue mt-1" />
+                        <FileText className="h-5 w-5 text-data-blue mt-1" />
                         <div>
                           <h3 className="font-medium">{file.name}</h3>
                           <p className="text-sm text-gray-500">

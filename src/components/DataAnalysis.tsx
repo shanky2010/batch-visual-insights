@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
-import { Chart, Download, RefreshCw, X } from 'lucide-react';
+import { BarChart3, Download, RefreshCw, X } from 'lucide-react';
 import AnalysisCard from './AnalysisCard';
 import BarChart from './visualizations/BarChart';
 import PieChart from './visualizations/PieChart';
@@ -563,7 +562,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
       {files.length > 0 && Object.keys(summaries).length === 0 && (
         <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-lg text-center">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-            <Chart className="w-8 h-8 text-data-blue" aria-hidden="true" />
+            <BarChart3 className="w-8 h-8 text-data-blue" aria-hidden="true" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Ready for Analysis</h3>
           <p className="text-gray-500 mb-4 max-w-md">

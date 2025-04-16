@@ -39,7 +39,7 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({ data, title, xLabel = 'X', yL
                 <Scatter 
                   name={title} 
                   data={data.datasets[0].data} 
-                  fill="#4361EE" 
+                  fill={Array.isArray(data.datasets[0].backgroundColor) ? data.datasets[0].backgroundColor[0] : data.datasets[0].backgroundColor} 
                 />
               </ScatterChart>
             </ResponsiveContainer>
