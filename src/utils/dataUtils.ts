@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for data processing
  */
@@ -282,7 +281,7 @@ export const prepareScatterPlotData = (
       {
         label: 'Data Points',
         data: filteredPoints,
-        backgroundColor: ['#4361EE'] // Make this an array to fix the type error
+        backgroundColor: ['#4361EE'] // Fixed: Now properly using a string array
       }
     ]
   };
