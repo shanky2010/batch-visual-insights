@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -119,39 +120,40 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
         
         if (file) {
           const firstNonNumericColumn = file.headers.findIndex((_, idx) => {
-          if (idx === firstColumn.columnIndex) return false;
+            if (idx === firstColumn.columnIndex) return false;
+            
+            const columnValues = file.data.slice(1).map(row => row[idx]);
+            const isAllNumeric = columnValues.every(val => !isNaN(parseFloat(val)));
+            
+            return !isAllNumeric;
+          });
           
-          const columnValues = file.data.slice(1).map(row => row[idx]);
-          const isAllNumeric = columnValues.every(val => !isNaN(parseFloat(val)));
+          const labelColumnIndex = firstNonNumericColumn !== -1 ? firstNonNumericColumn : 0;
           
-          return !isAllNumeric;
-        });
-        
-        const labelColumnIndex = firstNonNumericColumn !== -1 ? firstNonNumericColumn : 0;
-        
-        const barData = prepareBarChartData(
-          file.data, 
-          labelColumnIndex, 
-          firstColumn.columnIndex
-        );
-        
-        const pieData = preparePieChartData(
-          file.data, 
-          labelColumnIndex, 
-          firstColumn.columnIndex
-        );
-        
-        const histogramData = prepareHistogramData(
-          file.data,
-          firstColumn.columnIndex
-        );
-        
-        setChartData({
-          bar: barData,
-          pie: pieData,
-          histogram: histogramData,
-          scatter: null
-        });
+          const barData = prepareBarChartData(
+            file.data, 
+            labelColumnIndex, 
+            firstColumn.columnIndex
+          );
+          
+          const pieData = preparePieChartData(
+            file.data, 
+            labelColumnIndex, 
+            firstColumn.columnIndex
+          );
+          
+          const histogramData = prepareHistogramData(
+            file.data,
+            firstColumn.columnIndex
+          );
+          
+          setChartData({
+            bar: barData,
+            pie: pieData,
+            histogram: histogramData,
+            scatter: null
+          });
+        }
       }
       
       if (scatterplotConfig.x && scatterplotConfig.y) {
