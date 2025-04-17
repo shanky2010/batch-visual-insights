@@ -28,14 +28,15 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
     return dataPoint;
   });
   
-  // Enhanced color palette with soft, harmonious colors
+  // Enhanced color palette with vibrant colors that work well together
   const colors = [
     '#8B5CF6',   // Vivid Purple
-    '#0EA5E9',   // Ocean Blue
-    '#D946EF',   // Magenta Pink
-    '#F97316',   // Bright Orange
-    '#10B981',   // Soft Green
+    '#EC4899',   // Pink
     '#6366F1',   // Indigo
+    '#10B981',   // Emerald
+    '#F97316',   // Orange
+    '#0EA5E9',   // Sky Blue
+    '#D946EF',   // Fuchsia
   ];
   
   return (
