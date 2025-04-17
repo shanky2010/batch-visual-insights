@@ -67,8 +67,8 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
                   tick={{ 
                     fill: '#9CA3AF', 
                     fontSize: 12, 
-                    fontWeight: 500,
-                    textTransform: 'capitalize'
+                    fontWeight: 500
+                    // Removed textTransform: 'capitalize' as it's not a valid SVG property
                   }}
                 />
                 <YAxis 
