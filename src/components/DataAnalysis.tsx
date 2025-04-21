@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,24 +55,30 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
     x: null,
     y: null
   });
+  const [fileColumnMapping, setFileColumnMapping] = useState<{[fileId: string]: ColumnOption[]}>({});
 
   useEffect(() => {
     const options: ColumnOption[] = [];
+    const mapping: {[fileId: string]: ColumnOption[]} = {};
     
     files.forEach(file => {
       const numericColumns = getNumericColumns(file.data, file.headers);
+      mapping[file.id] = [];
       
       numericColumns.forEach(column => {
-        options.push({
+        const option = {
           fileId: file.id,
           fileName: file.name,
           columnIndex: column.index,
           columnName: column.name
-        });
+        };
+        options.push(option);
+        mapping[file.id].push(option);
       });
     });
     
     setColumnOptions(options);
+    setFileColumnMapping(mapping);
     
     if (options.length === 0) {
       setSelectedColumns({});
@@ -98,6 +103,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
     
     try {
       const newSummaries: {[key: string]: DatasetSummary} = {};
+      const fileCharts: {[fileId: string]: any} = {};
       
       Object.entries(selectedColumns).forEach(([key, columnOption]) => {
         const file = files.find(f => f.id === columnOption.fileId);
@@ -108,43 +114,53 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
             columnName: columnOption.columnName,
             ...stats
           };
+          
+          if (!fileCharts[file.id]) {
+            const firstNonNumericColumn = file.headers.findIndex((_, idx) => {
+              const columnValues = file.data.slice(1).map(row => row[idx]);
+              const isAllNumeric = columnValues.every(val => !isNaN(parseFloat(val)));
+              return !isAllNumeric;
+            });
+            
+            const labelColumnIndex = firstNonNumericColumn !== -1 ? firstNonNumericColumn : 0;
+            
+            fileCharts[file.id] = {
+              file,
+              labelColumnIndex,
+              columns: []
+            };
+          }
+          
+          fileCharts[file.id].columns.push({
+            key,
+            columnOption
+          });
         }
       });
       
       setSummaries(newSummaries);
       
-      if (Object.keys(selectedColumns).length > 0) {
-        const firstKey = Object.keys(selectedColumns)[0];
-        const firstColumn = selectedColumns[firstKey];
-        const file = files.find(f => f.id === firstColumn.fileId);
+      if (Object.keys(fileCharts).length > 0) {
+        const firstFileId = Object.keys(fileCharts)[0];
+        const firstFileData = fileCharts[firstFileId];
+        const firstColumnData = firstFileData.columns[0];
         
-        if (file) {
-          const firstNonNumericColumn = file.headers.findIndex((_, idx) => {
-            if (idx === firstColumn.columnIndex) return false;
-            
-            const columnValues = file.data.slice(1).map(row => row[idx]);
-            const isAllNumeric = columnValues.every(val => !isNaN(parseFloat(val)));
-            
-            return !isAllNumeric;
-          });
-          
-          const labelColumnIndex = firstNonNumericColumn !== -1 ? firstNonNumericColumn : 0;
-          
+        if (firstFileData && firstColumnData) {
           const barData = prepareBarChartData(
-            file.data, 
-            labelColumnIndex, 
-            firstColumn.columnIndex
+            firstFileData.file.data, 
+            firstFileData.labelColumnIndex, 
+            firstColumnData.columnOption.columnIndex
           );
           
           const pieData = preparePieChartData(
-            file.data, 
-            labelColumnIndex, 
-            firstColumn.columnIndex
+            firstFileData.file.data, 
+            firstFileData.labelColumnIndex, 
+            firstColumnData.columnOption.columnIndex
           );
           
           const histogramData = prepareHistogramData(
-            file.data,
-            firstColumn.columnIndex
+            firstFileData.file.data,
+            firstColumnData.columnOption.columnIndex
           );
           
           setChartData({
@@ -251,6 +267,19 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
     }
   };
 
+  const getSelectedColumnsByFile = () => {
+    const grouped: {[fileId: string]: ColumnOption[]} = {};
+    
+    Object.values(selectedColumns).forEach(column => {
+      if (!grouped[column.fileId]) {
+        grouped[column.fileId] = [];
+      }
+      grouped[column.fileId].push(column);
+    });
+    
+    return grouped;
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border-none bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-xl">
@@ -271,13 +300,20 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Available Columns</SelectLabel>
-                    {columnOptions.map((option) => (
-                      <SelectItem 
-                        key={generateColumnKey(option)} 
-                        value={generateColumnKey(option)}
-                      >
-                        {option.fileName} - {option.columnName}
-                      </SelectItem>
+                    {files.map(file => (
+                      <React.Fragment key={file.id}>
+                        <SelectLabel className="pl-2 text-xs font-bold text-gray-500">
+                          {file.name}
+                        </SelectLabel>
+                        {fileColumnMapping[file.id]?.map(option => (
+                          <SelectItem
+                            key={generateColumnKey(option)}
+                            value={generateColumnKey(option)}
+                          >
+                            {option.columnName}
+                          </SelectItem>
+                        ))}
+                      </React.Fragment>
                     ))}
                   </SelectGroup>
                 </SelectContent>
@@ -389,21 +425,46 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
           
           <TabsContent value="barcharts" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {chartData.bar && (
-                <BarChart 
-                  data={chartData.bar} 
-                  title={`Bar Chart: ${Object.values(selectedColumns)[0]?.columnName || 'Data'}`} 
-                />
-              )}
+              {Object.entries(getSelectedColumnsByFile()).map(([fileId, columns]) => {
+                const file = files.find(f => f.id === fileId);
+                if (!file || columns.length === 0) return null;
+                
+                const firstColumn = columns[0];
+                const labelColumnIndex = file.headers.findIndex((_, idx) => {
+                  const columnValues = file.data.slice(1).map(row => row[idx]);
+                  const isAllNumeric = columnValues.every(val => !isNaN(parseFloat(val)));
+                  return !isAllNumeric;
+                });
+                
+                const actualLabelColumn = labelColumnIndex !== -1 ? labelColumnIndex : 0;
+                
+                const barData = prepareBarChartData(
+                  file.data, 
+                  actualLabelColumn, 
+                  firstColumn.columnIndex
+                );
+                
+                const pieData = preparePieChartData(
+                  file.data, 
+                  actualLabelColumn, 
+                  firstColumn.columnIndex
+                );
+                
+                return (
+                  <React.Fragment key={`charts-${fileId}`}>
+                    <BarChart 
+                      data={barData} 
+                      title={`Bar Chart: ${file.name} - ${firstColumn.columnName}`}
+                    />
+                    <PieChart 
+                      data={pieData} 
+                      title={`Pie Chart: ${file.name} - ${firstColumn.columnName}`}
+                    />
+                  </React.Fragment>
+                );
+              })}
               
-              {chartData.pie && (
-                <PieChart 
-                  data={chartData.pie} 
-                  title={`Pie Chart: ${Object.values(selectedColumns)[0]?.columnName || 'Data'}`} 
-                />
-              )}
-              
-              {!chartData.bar && !chartData.pie && (
+              {Object.keys(getSelectedColumnsByFile()).length === 0 && (
                 <div className="col-span-2 flex items-center justify-center h-64 bg-gray-50 rounded-lg">
                   <p className="text-gray-500">No data available for charts. Select a column and analyze the data.</p>
                 </div>
@@ -413,23 +474,24 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
           
           <TabsContent value="histograms" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Object.entries(selectedColumns).map(([key, columnOption]) => {
-                const file = files.find(f => f.id === columnOption.fileId);
-                
+              {Object.entries(getSelectedColumnsByFile()).map(([fileId, columns]) => {
+                const file = files.find(f => f.id === fileId);
                 if (!file) return null;
                 
-                const histogramData = prepareHistogramData(
-                  file.data,
-                  columnOption.columnIndex
-                );
-                
-                return (
-                  <Histogram
-                    key={key}
-                    data={histogramData}
-                    title={`Histogram: ${columnOption.fileName} - ${columnOption.columnName}`}
-                  />
-                );
+                return columns.map(columnOption => {
+                  const histogramData = prepareHistogramData(
+                    file.data,
+                    columnOption.columnIndex
+                  );
+                  
+                  return (
+                    <Histogram
+                      key={`histogram-${generateColumnKey(columnOption)}`}
+                      data={histogramData}
+                      title={`Histogram: ${file.name} - ${columnOption.columnName}`}
+                    />
+                  );
+                });
               })}
               
               {Object.keys(selectedColumns).length === 0 && (

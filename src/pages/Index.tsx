@@ -1,28 +1,45 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataFile } from '@/utils/dataUtils';
 import FileUpload from '@/components/FileUpload';
 import DataAnalysis from '@/components/DataAnalysis';
-import { BarChart3, FileText, LayoutDashboard, Upload, ChevronRight } from 'lucide-react';
+import { BarChart3, FileText, LayoutDashboard, Upload, ChevronRight, LogOut } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSession } from "@/hooks/useSession";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/sonner";
 
 const Index = () => {
   const [files, setFiles] = useState<DataFile[]>([]);
   const [activeTab, setActiveTab] = useState('upload');
-  const { toast } = useToast();
+  const { toast: toastHook } = useToast();
   const { session, user, loading } = useSession();
+  const navigate = useNavigate();
 
   const handleFilesProcessed = (processedFiles: DataFile[]) => {
     setFiles(processedFiles);
-    toast({
+    toastHook({
       title: "Files Processed Successfully",
       description: `${processedFiles.length} file${processedFiles.length !== 1 ? 's' : ''} ready for analysis`,
     });
     setActiveTab('analyze');
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      toast.success("Logged out successfully");
+      navigate("/");
+    } catch (error: any) {
+      toast.error(error.message || "Error logging out");
+    }
   };
 
   useEffect(() => {
@@ -42,11 +59,22 @@ const Index = () => {
                 Upload, analyze, and visualize multiple CSV datasets at once
               </p>
             </div>
-            <div>
+            <div className="flex items-center gap-4">
               {loading ? null : session ? (
-                <span className="text-gray-600 font-medium">
-                  Welcome back{user?.email ? `, ${user.email}` : ""}!
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-600 font-medium">
+                    Welcome back{user?.email ? `, ${user.email}` : ""}!
+                  </span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleLogout}
+                    className="flex items-center gap-1"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </Button>
+                </div>
               ) : (
                 <Link
                   to="/auth"

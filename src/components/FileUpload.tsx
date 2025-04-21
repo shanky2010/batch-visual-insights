@@ -62,22 +62,37 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFilesProcessed }) => {
         return;
       }
       
+      // Process all new files
       const processedFiles = await Promise.all(csvFiles.map(processFile));
       
-      setFiles((prevFiles) => {
-        const newFiles = [...prevFiles, ...processedFiles];
-        onFilesProcessed(newFiles); // Notify parent component
-        return newFiles;
+      // Merge with existing files, checking for duplicates by filename
+      const mergedFiles = [...files];
+      
+      processedFiles.forEach(newFile => {
+        // Check if a file with this name already exists
+        const existingIndex = mergedFiles.findIndex(f => f.name === newFile.name);
+        
+        if (existingIndex >= 0) {
+          // Replace existing file with new one
+          mergedFiles[existingIndex] = newFile;
+          toast.info(`Updated existing file: ${newFile.name}`);
+        } else {
+          // Add new file
+          mergedFiles.push(newFile);
+        }
       });
       
-      toast.success(`Successfully uploaded ${csvFiles.length} CSV file(s)`);
+      setFiles(mergedFiles);
+      onFilesProcessed(mergedFiles); // Notify parent component of all files
+      
+      toast.success(`Successfully processed ${csvFiles.length} CSV file(s)`);
     } catch (error) {
       console.error('Error processing files:', error);
       toast.error("Error processing CSV files. Please check their format.");
     } finally {
       setProcessing(false);
     }
-  }, [onFilesProcessed]);
+  }, [files, onFilesProcessed]);
 
   // Handle file drop
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -135,7 +150,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFilesProcessed }) => {
             {dragActive ? 'Drop your files here' : 'Drag & drop files or click to browse'}
           </h3>
           <p className="text-gray-500 text-sm mb-4">
-            Supports CSV files only
+            Supports multiple CSV files
           </p>
           <input
             id="file-upload"
