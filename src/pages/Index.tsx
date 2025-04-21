@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataFile } from '@/utils/dataUtils';
@@ -8,11 +7,14 @@ import { BarChart3, FileText, LayoutDashboard, Upload, ChevronRight } from 'luci
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
+import { useSession } from "@/hooks/useSession";
 
 const Index = () => {
   const [files, setFiles] = useState<DataFile[]>([]);
   const [activeTab, setActiveTab] = useState('upload');
   const { toast } = useToast();
+  const { session, user, loading } = useSession();
 
   const handleFilesProcessed = (processedFiles: DataFile[]) => {
     setFiles(processedFiles);
@@ -20,11 +22,9 @@ const Index = () => {
       title: "Files Processed Successfully",
       description: `${processedFiles.length} file${processedFiles.length !== 1 ? 's' : ''} ready for analysis`,
     });
-    // Automatically switch to analyze tab after successful upload
     setActiveTab('analyze');
   };
 
-  // Smooth scroll to top when changing tabs
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
@@ -41,6 +41,20 @@ const Index = () => {
               <p className="mt-2 text-gray-600 text-lg">
                 Upload, analyze, and visualize multiple CSV datasets at once
               </p>
+            </div>
+            <div>
+              {loading ? null : session ? (
+                <span className="text-gray-600 font-medium">
+                  Welcome back{user?.email ? `, ${user.email}` : ""}!
+                </span>
+              ) : (
+                <Link
+                  to="/auth"
+                  className="inline-flex items-center px-4 py-2 border border-data-purple text-data-purple rounded-md hover:bg-data-purple hover:text-white transition-colors font-medium"
+                >
+                  Login / Sign up
+                </Link>
+              )}
             </div>
           </div>
         </div>
