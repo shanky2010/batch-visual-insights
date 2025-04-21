@@ -12,7 +12,7 @@ interface BarChartProps {
 const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
   if (!data || !data.labels || !data.datasets || data.datasets.length === 0) {
     return (
-      <Card className="w-full h-[400px] flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+      <Card className="w-full h-[400px] flex items-center justify-center bg-gradient-to-br from-newpurple-900 to-newblue-800 text-white">
         <p className="text-gray-400">No data available for bar chart</p>
       </Card>
     );
@@ -28,21 +28,21 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
     return dataPoint;
   });
   
-  // Enhanced color palette with vibrant colors that work well together
+  // Updated color palette for a pleasing, modern look
   const colors = [
-    '#8B5CF6',   // Vivid Purple
-    '#EC4899',   // Pink
-    '#6366F1',   // Indigo
-    '#10B981',   // Emerald
-    '#F97316',   // Orange
-    '#0EA5E9',   // Sky Blue
-    '#D946EF',   // Fuchsia
+    '#A879F5', // Mild purple
+    '#4E54C8', // Indigo blue
+    '#9B87F5', // Light purple
+    '#45B7D1', // Cool blue
+    '#FFC3A0', // Peach
+    '#FF7E67', // Coral
+    '#6EE7B7', // Pastel green
   ];
   
   return (
-    <Card className="w-full bg-gradient-to-br from-gray-900 to-gray-800 text-white border-none shadow-2xl rounded-2xl overflow-hidden">
+    <Card className="w-full bg-gradient-to-br from-newpurple-900 to-newblue-800 text-white border-none shadow-2xl rounded-2xl overflow-hidden">
       <CardHeader>
-        <CardTitle className="text-xl font-bold text-gray-100 bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 text-transparent">
+        <CardTitle className="text-xl font-bold text-gray-100 bg-clip-text bg-gradient-to-r from-newpurple-400 to-newblue-400 text-transparent">
           {title}
         </CardTitle>
       </CardHeader>
@@ -53,12 +53,12 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
               <RechartsBarChart
                 data={chartData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
-                className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4"
+                className="bg-gradient-to-br from-newblue-900 to-newpurple-800 rounded-2xl p-4"
               >
                 <CartesianGrid 
                   strokeDasharray="3 3" 
-                  stroke="rgba(255,255,255,0.1)" 
-                  className="opacity-20"
+                  stroke="rgba(255,255,255,0.08)" 
+                  className="opacity-15"
                 />
                 <XAxis 
                   dataKey="name"
@@ -66,25 +66,26 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
                   textAnchor="end"
                   height={80}
                   tick={{ 
-                    fill: '#9CA3AF', 
+                    fill: '#B4B4D7', 
                     fontSize: 12, 
-                    fontWeight: 500
-                    // Removed textTransform: 'capitalize' as it's not a valid SVG property
+                    fontWeight: 600
+                    // Removed textTransform which caused the error
                   }}
                 />
                 <YAxis 
                   tick={{ 
-                    fill: '#9CA3AF', 
-                    fontSize: 12 
+                    fill: '#B4B4D7', 
+                    fontSize: 12,
+                    fontWeight: 600
                   }} 
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    backgroundColor: 'rgba(27, 29, 64, 0.97)',
                     border: 'none',
                     borderRadius: '12px',
                     padding: '12px',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                    boxShadow: '0 4px 6px rgba(27,29,64,0.11)'
                   }}
                   itemStyle={{ 
                     color: '#fff', 
@@ -96,8 +97,8 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
                   verticalAlign="top" 
                   height={36}
                   wrapperStyle={{
-                    color: '#fff',
-                    fontWeight: 600,
+                    color: '#E5E5FF',
+                    fontWeight: 700,
                     paddingBottom: '10px'
                   }}
                 />
@@ -106,9 +107,9 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
                     key={index} 
                     dataKey={dataset.label} 
                     fill={colors[index % colors.length]}
-                    className="transition-all duration-300 ease-in-out hover:opacity-80"
+                    className="transition-all duration-300 ease-in-out hover:opacity-85"
                     barSize={40}
-                    radius={[8, 8, 0, 0]}
+                    radius={[7, 7, 0, 0]}
                   />
                 ))}
               </RechartsBarChart>
@@ -125,3 +126,4 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
 };
 
 export default BarChart;
+

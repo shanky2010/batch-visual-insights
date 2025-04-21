@@ -1,39 +1,38 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 248 43% 97%;
+    --foreground: 247 67% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 247 67% 98%;
+    --card-foreground: 247 92% 17%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 244 68% 99%;
+    --popover-foreground: 247 70% 13%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 261 73% 69%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 221 84% 94%;
+    --secondary-foreground: 249 25% 18%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 218 21% 89%;
+    --muted-foreground: 240 3% 36%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 285 82% 87%;
+    --accent-foreground: 241 76% 22%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 249 24% 99%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 228 20% 80%;
+    --input: 230 18% 85%;
+    --ring: 265 89% 78%;
 
-    --radius: 0.5rem;
+    --radius: 0.62rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -50,44 +49,51 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Data visualization custom colors */
+    --newpurple-900: 264 95% 19%;
+    --newpurple-800: 265 60% 31%;
+    --newpurple-400: 265 78% 70%;
+    --newblue-900: 224 50% 22%;
+    --newblue-800: 223 78% 38%;
+    --newblue-400: 224 67% 66%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 247 77% 5%;
+    --foreground: 219 47% 93%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 247 66% 7%;
+    --card-foreground: 219 47% 92%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 249 18% 10%;
+    --popover-foreground: 219 47% 90%;
 
-    --primary: 265 89% 78%; /* Vibrant purple primary color */
+    --primary: 265 78% 70%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 224 40% 26%;
+    --secondary-foreground: 242 86% 82%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 224 42% 20%;
+    --muted-foreground: 222 42% 72%;
 
-    --accent: 265 89% 78%; /* Matching accent color */
-    --accent-foreground: 0 0% 100%;
+    --accent: 285 82% 88%;
+    --accent-foreground: 222 60% 32%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 77% 37%;
+    --destructive-foreground: 219 55% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 265 89% 78%; /* Matching ring color */
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 265 89% 78%; /* Matching sidebar primary */
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 265 89% 78%; /* Matching sidebar ring */
+    --border: 249 20% 22%;
+    --input: 249 20% 23%;
+    --ring: 265 78% 70%;
+
+    --newpurple-900: 267 89% 15%;
+    --newpurple-800: 265 66% 29%;
+    --newpurple-400: 265 78% 70%;
+    --newblue-900: 229 58% 17%;
+    --newblue-800: 227 83% 37%;
+    --newblue-400: 225 60% 60%;
   }
 }
 
