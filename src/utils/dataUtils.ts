@@ -143,11 +143,22 @@ export const prepareBarChartData = (
   // Filter out non-numeric values and sort by value
   const filteredData = extractedData
     .filter(item => !isNaN(item.value))
-    .sort((a, b) => b.value - a.value); // Sort in descending order
+    .sort((a, b) => b.value - a.value);
+  
+  // Remove duplicates based on label (keep the first occurrence which has highest value due to sorting)
+  const uniqueData = filteredData.reduce((acc: typeof filteredData, current) => {
+    if (!acc.find(item => item.label === current.label)) {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+  
+  // Limit to specified number of items after deduplication
+  const limitedData = uniqueData.slice(0, limit);
   
   // Prepare labels and data for the chart
-  const labels = filteredData.map(item => item.label);
-  const values = filteredData.map(item => item.value);
+  const labels = limitedData.map(item => item.label);
+  const values = limitedData.map(item => item.value);
   
   // Enhanced color palette
   const colors = [
@@ -161,8 +172,8 @@ export const prepareBarChartData = (
       {
         label: 'Value',
         data: values,
-        backgroundColor: colors,
-        borderColor: colors.map(color => color.replace('1)', '0.8)')),
+        backgroundColor: colors.slice(0, values.length),
+        borderColor: colors.slice(0, values.length).map(color => color.replace('1)', '0.8)')),
         borderWidth: 1
       }
     ]
@@ -185,14 +196,25 @@ export const preparePieChartData = (
   // Filter out non-numeric values and sort by value
   const filteredData = extractedData
     .filter(item => !isNaN(item.value))
-    .sort((a, b) => b.value - a.value); // Sort in descending order
+    .sort((a, b) => b.value - a.value);
+  
+  // Remove duplicates based on label (keep the first occurrence which has highest value due to sorting)
+  const uniqueData = filteredData.reduce((acc: typeof filteredData, current) => {
+    if (!acc.find(item => item.label === current.label)) {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+  
+  // Limit to specified number of items after deduplication
+  const limitedData = uniqueData.slice(0, limit);
   
   // Calculate total for percentage
-  const total = filteredData.reduce((sum, item) => sum + item.value, 0);
+  const total = limitedData.reduce((sum, item) => sum + item.value, 0);
   
   // Filter out items less than 1% and combine them into "Others"
-  const significantData = filteredData.filter(item => (item.value / total) >= 0.01);
-  const otherSum = filteredData
+  const significantData = limitedData.filter(item => (item.value / total) >= 0.01);
+  const otherSum = limitedData
     .filter(item => (item.value / total) < 0.01)
     .reduce((sum, item) => sum + item.value, 0);
   
@@ -216,7 +238,7 @@ export const preparePieChartData = (
       {
         label: 'Value',
         data: values,
-        backgroundColor: colors
+        backgroundColor: colors.slice(0, values.length)
       }
     ]
   };
@@ -294,11 +316,22 @@ export const prepareScatterPlotData = (
   // Filter out non-numeric values
   const filteredPoints = points.filter(point => !isNaN(point.x) && !isNaN(point.y));
   
+  // Remove duplicate points (points with same x and y values)
+  const uniquePoints = filteredPoints.reduce((acc: typeof filteredPoints, current) => {
+    if (!acc.find(point => point.x === current.x && point.y === current.y)) {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+  
+  // Limit to specified number of points after deduplication
+  const limitedPoints = uniquePoints.slice(0, limit);
+  
   return {
     datasets: [
       {
         label: 'Data Points',
-        data: filteredPoints,
+        data: limitedPoints,
         backgroundColor: ['#4361EE'],
         pointBackgroundColor: '#4361EE',
         pointBorderColor: '#3A0CA3',
@@ -326,5 +359,14 @@ export const prepareTreeMapData = (
     .filter(item => !isNaN(item.value))
     .sort((a, b) => b.value - a.value);
   
-  return filteredData;
+  // Remove duplicates based on name (keep the first occurrence which has highest value due to sorting)
+  const uniqueData = filteredData.reduce((acc: typeof filteredData, current) => {
+    if (!acc.find(item => item.name === current.name)) {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+  
+  // Limit to specified number of items after deduplication
+  return uniqueData.slice(0, limit);
 };
