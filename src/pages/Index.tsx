@@ -36,7 +36,8 @@ const Index = () => {
         throw error;
       }
       toast.success("Logged out successfully");
-      navigate("/");
+      // Explicitly navigate to the auth page after successful logout
+      navigate("/auth");
     } catch (error: any) {
       toast.error(error.message || "Error logging out");
     }
