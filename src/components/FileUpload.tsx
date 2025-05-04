@@ -184,6 +184,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFilesProcessed }) => {
     }
 
     try {
+      // Convert the validation issues to a plain JSON object that Supabase can store
+      const validationIssuesJson = file.validation?.issues.map(issue => ({
+        type: issue.type,
+        message: issue.message,
+        rowIndex: issue.rowIndex,
+        colIndex: issue.colIndex
+      })) || [];
+
       const { data, error } = await supabase
         .from('datasets')
         .insert({
@@ -194,12 +202,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFilesProcessed }) => {
           row_count: file.data.length - 1, // Subtract header row
           content: file.content,
           validation_status: file.validation?.isValid ? 'valid' : 'has_issues',
-          validation_issues: file.validation?.issues || [],
+          validation_issues: validationIssuesJson,
           metadata: {
             headers: file.headers,
             hasDuplicates: file.validation?.hasDuplicateRows,
             hasMissingValues: file.validation?.hasMissingValues
-          }
+          },
+          user_id: user.id
         })
         .select()
         .single();
