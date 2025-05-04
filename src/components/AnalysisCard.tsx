@@ -53,6 +53,14 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({ fileName, columnName, stats
               {formatNumber(stats.min)} - {formatNumber(stats.max)}
             </p>
           </div>
+          <div className="space-y-1">
+            <p className="text-sm text-gray-500">Variance</p>
+            <p className="text-lg font-medium">{formatNumber(stats.variance)}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm text-gray-500">Count</p>
+            <p className="text-lg font-medium">{stats.count || 'N/A'}</p>
+          </div>
         </div>
       </CardContent>
     </Card>

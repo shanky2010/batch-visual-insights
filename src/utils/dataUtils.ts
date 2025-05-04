@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for data processing
  */
@@ -37,7 +36,31 @@ export interface DatasetSummary {
   min: number | null;
   max: number | null;
   stdDev: number | null;
-  variance?: number | null;
+  variance: number | null;
+  quartiles?: {
+    q1: number | null;
+    q3: number | null;
+  };
+  count?: number;
+  skewness?: number | null;
+  kurtosis?: number | null;
+}
+
+export interface ComparisonResult {
+  columnName: string;
+  datasets: {
+    datasetId: string;
+    datasetName: string;
+    stats: DatasetSummary;
+  }[];
+  differences: {
+    mean: number;
+    median: number;
+    stdDev: number;
+    min: number;
+    max: number;
+    variance: number;
+  }[];
 }
 
 export interface ChartData {
@@ -116,12 +139,25 @@ export const getNumericColumns = (data: any[][], headers: string[]): { index: nu
 export const calculateStatistics = (
   data: any[][], 
   columnIndex: number
-): { mean: number | null; median: number | null; min: number | null; max: number | null; stdDev: number | null; variance: number | null } => {
+): DatasetSummary => {
   // Extract numeric values from the column (skip header row)
   const values = data.slice(1).map(row => parseFloat(row[columnIndex])).filter(val => !isNaN(val));
+  const columnName = data[0][columnIndex] || `Column ${columnIndex + 1}`;
   
   if (values.length === 0) {
-    return { mean: null, median: null, min: null, max: null, stdDev: null, variance: null };
+    return { 
+      columnName,
+      mean: null, 
+      median: null, 
+      min: null, 
+      max: null, 
+      stdDev: null, 
+      variance: null,
+      quartiles: { q1: null, q3: null },
+      count: 0,
+      skewness: null,
+      kurtosis: null
+    };
   }
   
   // Calculate mean
@@ -139,12 +175,142 @@ export const calculateStatistics = (
   const min = Math.min(...values);
   const max = Math.max(...values);
   
+  // Calculate quartiles
+  const q1Index = Math.floor(sortedValues.length * 0.25);
+  const q3Index = Math.floor(sortedValues.length * 0.75);
+  const q1 = sortedValues[q1Index];
+  const q3 = sortedValues[q3Index];
+  
   // Calculate standard deviation and variance
   const squaredDifferences = values.map(val => Math.pow(val - mean, 2));
   const variance = squaredDifferences.reduce((acc, val) => acc + val, 0) / values.length;
   const stdDev = Math.sqrt(variance);
   
-  return { mean, median, min, max, stdDev, variance };
+  // Calculate skewness (measure of asymmetry)
+  const cubedDifferences = values.map(val => Math.pow((val - mean) / stdDev, 3));
+  const skewness = cubedDifferences.reduce((acc, val) => acc + val, 0) / values.length;
+  
+  // Calculate kurtosis (measure of "tailedness")
+  const fourthPowerDifferences = values.map(val => Math.pow((val - mean) / stdDev, 4));
+  const kurtosis = fourthPowerDifferences.reduce((acc, val) => acc + val, 0) / values.length - 3; // Excess kurtosis
+  
+  return { 
+    columnName,
+    mean, 
+    median, 
+    min, 
+    max, 
+    stdDev, 
+    variance,
+    quartiles: { q1, q3 },
+    count: values.length,
+    skewness,
+    kurtosis
+  };
+};
+
+// Compare statistics between datasets
+export const compareDatasets = (
+  datasets: {
+    id: string;
+    name: string;
+    data: any[][];
+    headers: string[];
+    columnIndices: number[];
+  }[]
+): ComparisonResult[] => {
+  if (datasets.length === 0) return [];
+  
+  // Get all column names from all datasets
+  const allColumns: Map<string, Set<string>> = new Map();
+  
+  datasets.forEach(dataset => {
+    dataset.columnIndices.forEach(columnIdx => {
+      const columnName = dataset.headers[columnIdx] || `Column ${columnIdx + 1}`;
+      if (!allColumns.has(columnName)) {
+        allColumns.set(columnName, new Set());
+      }
+      allColumns.get(columnName)?.add(dataset.id);
+    });
+  });
+  
+  // Generate comparison results
+  const results: ComparisonResult[] = [];
+  
+  for (const [columnName, datasetIds] of allColumns.entries()) {
+    if (datasetIds.size < 2) continue; // Need at least 2 datasets to compare
+    
+    const datasetsWithColumn = datasets.filter(ds => 
+      datasetIds.has(ds.id) && 
+      ds.headers.includes(columnName)
+    );
+    
+    const datasetStats = datasetsWithColumn.map(ds => {
+      const columnIdx = ds.headers.indexOf(columnName);
+      const stats = calculateStatistics(ds.data, columnIdx);
+      
+      return {
+        datasetId: ds.id,
+        datasetName: ds.name,
+        stats
+      };
+    });
+    
+    // Calculate differences (if there are exactly 2 datasets)
+    const differences = [];
+    
+    if (datasetStats.length === 2) {
+      const ds1 = datasetStats[0].stats;
+      const ds2 = datasetStats[1].stats;
+      
+      differences.push({
+        mean: calculateDifference(ds1.mean, ds2.mean),
+        median: calculateDifference(ds1.median, ds2.median),
+        stdDev: calculateDifference(ds1.stdDev, ds2.stdDev),
+        min: calculateDifference(ds1.min, ds2.min),
+        max: calculateDifference(ds1.max, ds2.max),
+        variance: calculateDifference(ds1.variance, ds2.variance)
+      });
+    }
+    
+    results.push({
+      columnName,
+      datasets: datasetStats,
+      differences
+    });
+  }
+  
+  return results;
+};
+
+// Helper function to calculate difference between two values that might be null
+const calculateDifference = (val1: number | null, val2: number | null): number => {
+  if (val1 === null || val2 === null) return 0;
+  return val1 - val2;
+};
+
+// Format a statistics summary for export
+export const formatStatisticsForExport = (
+  summaries: { [key: string]: DatasetSummary },
+  selectedColumns: any
+): string => {
+  let csv = "Column Name,File Name,Mean,Median,Min,Max,Standard Deviation,Variance,Count\n";
+  
+  Object.entries(summaries).forEach(([key, summary]) => {
+    const columnOption = selectedColumns[key];
+    if (columnOption) {
+      csv += `"${summary.columnName}","${columnOption.fileName}",${formatValue(summary.mean)},${formatValue(summary.median)},${formatValue(summary.min)},${formatValue(summary.max)},${formatValue(summary.stdDev)},${formatValue(summary.variance)},${summary.count || 'N/A'}\n`;
+    }
+  });
+  
+  return csv;
+};
+
+// Helper function to format values for export
+const formatValue = (value: number | null): string => {
+  if (value === null) return "N/A";
+  if (Math.abs(value) < 0.0001) return value.toExponential(4);
+  return value.toString();
 };
 
 // Detect outliers using IQR method
@@ -592,4 +758,57 @@ export const prepareTreeMapData = (
   
   // Limit to specified number of items after deduplication
   return uniqueData.slice(0, limit);
+};
+
+// Generate comparison table data
+export const generateComparisonTableData = (comparisonResults: ComparisonResult[]): any[] => {
+  const tableData = [];
+  
+  for (const result of comparisonResults) {
+    const rowData: any = {
+      columnName: result.columnName
+    };
+    
+    result.datasets.forEach(dataset => {
+      // Add dataset statistics
+      rowData[`${dataset.datasetName}-mean`] = formatDisplayValue(dataset.stats.mean);
+      rowData[`${dataset.datasetName}-median`] = formatDisplayValue(dataset.stats.median);
+      rowData[`${dataset.datasetName}-stdDev`] = formatDisplayValue(dataset.stats.stdDev);
+      rowData[`${dataset.datasetName}-min`] = formatDisplayValue(dataset.stats.min);
+      rowData[`${dataset.datasetName}-max`] = formatDisplayValue(dataset.stats.max);
+    });
+    
+    // Add difference if available
+    if (result.differences.length > 0) {
+      const diff = result.differences[0];
+      rowData['diff-mean'] = formatDifferenceValue(diff.mean);
+      rowData['diff-median'] = formatDifferenceValue(diff.median);
+      rowData['diff-stdDev'] = formatDifferenceValue(diff.stdDev);
+      rowData['diff-min'] = formatDifferenceValue(diff.min);
+      rowData['diff-max'] = formatDifferenceValue(diff.max);
+    }
+    
+    tableData.push(rowData);
+  }
+  
+  return tableData;
+};
+
+// Helper function to format display values
+const formatDisplayValue = (value: number | null): string => {
+  if (value === null) return 'N/A';
+  if (Math.abs(value) < 0.001) return value.toExponential(3);
+  return value.toFixed(4);
+};
+
+// Helper function to format difference values with indicators
+const formatDifferenceValue = (value: number): string => {
+  if (value === 0) return '0';
+  
+  const formattedValue = Math.abs(value) < 0.001 
+    ? value.toExponential(3) 
+    : value.toFixed(4);
+  
+  // Add indicator for increase/decrease
+  return value > 0 ? `+${formattedValue}` : formattedValue;
 };

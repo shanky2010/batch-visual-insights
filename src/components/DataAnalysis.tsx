@@ -4,13 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
-import { BarChart3, Download, RefreshCw, X } from 'lucide-react';
+import { BarChart3, Download, RefreshCw, X, FileText } from 'lucide-react';
 import AnalysisCard from './AnalysisCard';
 import BarChart from './visualizations/BarChart';
 import PieChart from './visualizations/PieChart';
 import Histogram from './visualizations/Histogram';
 import ScatterPlot from './visualizations/ScatterPlot';
 import TreeMap from './visualizations/TreeMap';
+import DataComparison from './DataComparison';
 import { 
   DataFile, 
   DatasetSummary,
@@ -20,7 +21,8 @@ import {
   preparePieChartData,
   prepareHistogramData,
   prepareScatterPlotData,
-  prepareTreeMapData
+  prepareTreeMapData,
+  formatStatisticsForExport
 } from '@/utils/dataUtils';
 
 interface DataAnalysisProps {
@@ -228,37 +230,60 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
 
   const exportResults = () => {
     try {
-      const results: any = {
-        statistics: {},
-        timestamp: new Date().toISOString()
-      };
+      const format = 'csv'; // Could add option for JSON or other formats later
       
-      Object.entries(summaries).forEach(([key, summary]) => {
-        const columnOption = selectedColumns[key];
+      if (format === 'csv') {
+        // Generate CSV content
+        const csv = formatStatisticsForExport(summaries, selectedColumns);
         
-        if (columnOption) {
-          results.statistics[`${columnOption.fileName} - ${columnOption.columnName}`] = {
-            mean: summary.mean,
-            median: summary.median,
-            min: summary.min,
-            max: summary.max,
-            standardDeviation: summary.stdDev
-          };
-        }
-      });
-      
-      const jsonString = JSON.stringify(results, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `data-analysis-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        // Create and download the file
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `data-analysis-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        // JSON format - this is the original code
+        const results: any = {
+          statistics: {},
+          timestamp: new Date().toISOString()
+        };
+        
+        Object.entries(summaries).forEach(([key, summary]) => {
+          const columnOption = selectedColumns[key];
+          
+          if (columnOption) {
+            results.statistics[`${columnOption.fileName} - ${columnOption.columnName}`] = {
+              mean: summary.mean,
+              median: summary.median,
+              min: summary.min,
+              max: summary.max,
+              standardDeviation: summary.stdDev,
+              variance: summary.variance,
+              count: summary.count
+            };
+          }
+        });
+        
+        const jsonString = JSON.stringify(results, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `data-analysis-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
       
       toast.success("Analysis results exported successfully");
     } catch (error) {
@@ -340,6 +365,31 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
                 <Download className="mr-2 h-4 w-4" />
                 Export Results
               </Button>
+              
+              <Button
+                variant="outline"
+                className="flex items-center"
+                onClick={() => {
+                  const csvContent = formatStatisticsForExport(summaries, selectedColumns);
+                  const blob = new Blob([csvContent], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `statistical-summary-${new Date().toISOString().split('T')[0]}.csv`;
+                  document.body.appendChild(a);
+                  a.click();
+                  
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  
+                  toast.success("Statistical summary exported as CSV");
+                }}
+                disabled={Object.keys(summaries).length === 0}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Export as CSV
+              </Button>
             </div>
             
             {Object.keys(selectedColumns).length > 0 && (
@@ -374,7 +424,7 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
           onValueChange={setSelectedTab}
           className="w-full"
         >
-          <TabsList className="mb-6 grid w-full grid-cols-5 bg-gradient-to-r from-gray-900 to-gray-800 p-1 rounded-xl">
+          <TabsList className="mb-6 grid w-full grid-cols-6 bg-gradient-to-r from-gray-900 to-gray-800 p-1 rounded-xl">
             <TabsTrigger 
               value="statistics"
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
@@ -404,6 +454,12 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
             >
               TreeMap
+            </TabsTrigger>
+            <TabsTrigger 
+              value="comparison"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+            >
+              Compare
             </TabsTrigger>
           </TabsList>
           
@@ -643,6 +699,13 @@ const DataAnalysis: React.FC<DataAnalysisProps> = ({ files }) => {
                 );
               })}
             </div>
+          </TabsContent>
+          
+          <TabsContent value="comparison" className="space-y-6">
+            <DataComparison 
+              files={files}
+              selectedColumns={selectedColumns}
+            />
           </TabsContent>
         </Tabs>
       )}
