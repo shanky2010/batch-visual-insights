@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataFile } from '@/utils/dataUtils';
 import FileUpload from '@/components/FileUpload';
 import DataAnalysis from '@/components/DataAnalysis';
-import { BarChart3, FileText, LayoutDashboard, Upload, ChevronRight, LogOut } from 'lucide-react';
+import { BarChart3, FileText, LayoutDashboard, Upload, ChevronRight, LogOut, Database } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
+import DatasetList from '@/components/DatasetList';
 
 const Index = () => {
   const [files, setFiles] = useState<DataFile[]>([]);
@@ -93,13 +94,20 @@ const Index = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
           <Card className="border-none shadow-md">
             <CardContent className="p-2">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:w-auto lg:inline-grid gap-2 p-2">
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-auto lg:inline-grid gap-2 p-2">
                 <TabsTrigger 
                   value="upload" 
                   className="flex items-center space-x-2 data-[state=active]:bg-data-purple data-[state=active]:text-white"
                 >
                   <Upload className="h-4 w-4" />
                   <span>Upload Files</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="datasets"
+                  className="flex items-center space-x-2 data-[state=active]:bg-data-light-blue data-[state=active]:text-white"
+                >
+                  <Database className="h-4 w-4" />
+                  <span>Your Datasets</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="analyze"
@@ -149,6 +157,10 @@ const Index = () => {
               )}
             </div>
           </TabsContent>
+
+          <TabsContent value="datasets" className="space-y-8">
+            <DatasetList />
+          </TabsContent>
           
           <TabsContent value="analyze" className="space-y-8">
             {files.length > 0 ? (
@@ -192,7 +204,7 @@ const Index = () => {
                           <div>
                             <h3 className="font-medium text-gray-900">{file.name}</h3>
                             <p className="text-sm text-gray-600">
-                              {file.data.length} rows × {file.headers.length} columns
+                              {file.data.length - 1} rows × {file.headers.length} columns
                             </p>
                             {file.headers.length > 0 && (
                               <div className="mt-2">

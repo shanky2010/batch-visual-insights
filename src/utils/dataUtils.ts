@@ -1,6 +1,22 @@
+
 /**
  * Utility functions for data processing
  */
+
+export interface ValidationIssue {
+  type: 'error' | 'warning';
+  message: string;
+  rowIndex?: number;
+  colIndex?: number;
+}
+
+export interface FileValidation {
+  isValid: boolean;
+  issues: ValidationIssue[];
+  hasDuplicateRows: boolean;
+  hasMissingValues: boolean;
+  hasInconsistentColumns: boolean;
+}
 
 export interface DataFile {
   id: string;
@@ -9,6 +25,9 @@ export interface DataFile {
   data: any[][];
   headers: string[];
   parsed: boolean;
+  fileSize?: number;
+  dateAdded?: string;
+  validation?: FileValidation;
 }
 
 export interface DatasetSummary {
@@ -18,6 +37,7 @@ export interface DatasetSummary {
   min: number | null;
   max: number | null;
   stdDev: number | null;
+  variance?: number | null;
 }
 
 export interface ChartData {
@@ -96,12 +116,12 @@ export const getNumericColumns = (data: any[][], headers: string[]): { index: nu
 export const calculateStatistics = (
   data: any[][], 
   columnIndex: number
-): { mean: number | null; median: number | null; min: number | null; max: number | null; stdDev: number | null } => {
+): { mean: number | null; median: number | null; min: number | null; max: number | null; stdDev: number | null; variance: number | null } => {
   // Extract numeric values from the column (skip header row)
   const values = data.slice(1).map(row => parseFloat(row[columnIndex])).filter(val => !isNaN(val));
   
   if (values.length === 0) {
-    return { mean: null, median: null, min: null, max: null, stdDev: null };
+    return { mean: null, median: null, min: null, max: null, stdDev: null, variance: null };
   }
   
   // Calculate mean
@@ -119,12 +139,215 @@ export const calculateStatistics = (
   const min = Math.min(...values);
   const max = Math.max(...values);
   
-  // Calculate standard deviation
+  // Calculate standard deviation and variance
   const squaredDifferences = values.map(val => Math.pow(val - mean, 2));
   const variance = squaredDifferences.reduce((acc, val) => acc + val, 0) / values.length;
   const stdDev = Math.sqrt(variance);
   
-  return { mean, median, min, max, stdDev };
+  return { mean, median, min, max, stdDev, variance };
+};
+
+// Detect outliers using IQR method
+export const detectOutliersIQR = (data: number[]): { outliers: number[]; outlierIndices: number[] } => {
+  const sortedData = [...data].sort((a, b) => a - b);
+  const q1Index = Math.floor(sortedData.length * 0.25);
+  const q3Index = Math.floor(sortedData.length * 0.75);
+  
+  const q1 = sortedData[q1Index];
+  const q3 = sortedData[q3Index];
+  const iqr = q3 - q1;
+  
+  const lowerBound = q1 - 1.5 * iqr;
+  const upperBound = q3 + 1.5 * iqr;
+  
+  const outliers: number[] = [];
+  const outlierIndices: number[] = [];
+  
+  data.forEach((value, index) => {
+    if (value < lowerBound || value > upperBound) {
+      outliers.push(value);
+      outlierIndices.push(index);
+    }
+  });
+  
+  return { outliers, outlierIndices };
+};
+
+// Detect outliers using Z-score method
+export const detectOutliersZScore = (data: number[], threshold = 3): { outliers: number[]; outlierIndices: number[] } => {
+  const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
+  
+  const squaredDifferences = data.map(val => Math.pow(val - mean, 2));
+  const variance = squaredDifferences.reduce((acc, val) => acc + val, 0) / data.length;
+  const stdDev = Math.sqrt(variance);
+  
+  const outliers: number[] = [];
+  const outlierIndices: number[] = [];
+  
+  data.forEach((value, index) => {
+    const zScore = Math.abs((value - mean) / stdDev);
+    if (zScore > threshold) {
+      outliers.push(value);
+      outlierIndices.push(index);
+    }
+  });
+  
+  return { outliers, outlierIndices };
+};
+
+// Calculate correlation between two columns
+export const calculateCorrelation = (xValues: number[], yValues: number[]): number => {
+  if (xValues.length !== yValues.length || xValues.length === 0) {
+    return 0;
+  }
+  
+  const n = xValues.length;
+  
+  // Calculate means
+  const xMean = xValues.reduce((sum, val) => sum + val, 0) / n;
+  const yMean = yValues.reduce((sum, val) => sum + val, 0) / n;
+  
+  // Calculate the numerator (covariance * n)
+  let numerator = 0;
+  for (let i = 0; i < n; i++) {
+    numerator += (xValues[i] - xMean) * (yValues[i] - yMean);
+  }
+  
+  // Calculate the denominator
+  let xSumSquares = 0;
+  let ySumSquares = 0;
+  
+  for (let i = 0; i < n; i++) {
+    xSumSquares += Math.pow(xValues[i] - xMean, 2);
+    ySumSquares += Math.pow(yValues[i] - yMean, 2);
+  }
+  
+  const denominator = Math.sqrt(xSumSquares * ySumSquares);
+  
+  if (denominator === 0) {
+    return 0; // Avoid division by zero
+  }
+  
+  return numerator / denominator;
+};
+
+// Calculate correlation matrix for multiple columns
+export const calculateCorrelationMatrix = (data: any[][], columnIndices: number[]): number[][] => {
+  // Extract numeric values for each column (skip header row)
+  const columnValues = columnIndices.map(colIndex => 
+    data.slice(1).map(row => parseFloat(row[colIndex])).filter(val => !isNaN(val))
+  );
+  
+  const n = columnIndices.length;
+  const matrix: number[][] = Array(n).fill(0).map(() => Array(n).fill(0));
+  
+  for (let i = 0; i < n; i++) {
+    // Diagonal elements are always 1
+    matrix[i][i] = 1;
+    
+    // Calculate correlation for each pair
+    for (let j = i + 1; j < n; j++) {
+      const correlation = calculateCorrelation(columnValues[i], columnValues[j]);
+      matrix[i][j] = correlation;
+      matrix[j][i] = correlation; // Correlation matrix is symmetric
+    }
+  }
+  
+  return matrix;
+};
+
+// Remove duplicate rows from data
+export const removeDuplicateRows = (data: any[][]): any[][] => {
+  if (data.length <= 1) return data;
+  
+  const headers = data[0];
+  const uniqueRows = new Map<string, any[]>();
+  
+  // Add header row
+  const result = [headers];
+  
+  // Process data rows
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const rowStr = JSON.stringify(row);
+    
+    if (!uniqueRows.has(rowStr)) {
+      uniqueRows.set(rowStr, row);
+      result.push(row);
+    }
+  }
+  
+  return result;
+};
+
+// Handle missing values
+export const handleMissingValues = (
+  data: any[][], 
+  method: 'remove' | 'mean' | 'median' | 'value', 
+  replacementValue?: any
+): any[][] => {
+  if (data.length <= 1) return data;
+  
+  const headers = data[0];
+  const result = [headers];
+  
+  // For mean/median replacement, calculate values for each column
+  const columnStats: {[colIndex: number]: {mean: number, median: number}} = {};
+  
+  if (method === 'mean' || method === 'median') {
+    for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+      const colValues = data.slice(1)
+        .map(row => row[colIndex])
+        .filter(val => val !== undefined && val !== null && val !== '')
+        .map(val => isNumeric(val) ? parseFloat(val) : val);
+      
+      const numericValues = colValues.filter(val => typeof val === 'number' && !isNaN(val));
+      
+      if (numericValues.length > 0) {
+        const sum = numericValues.reduce((acc, val) => acc + val, 0);
+        const mean = sum / numericValues.length;
+        
+        const sortedValues = [...numericValues].sort((a, b) => a - b);
+        const medianIndex = Math.floor(sortedValues.length / 2);
+        const median = sortedValues.length % 2 === 0
+          ? (sortedValues[medianIndex - 1] + sortedValues[medianIndex]) / 2
+          : sortedValues[medianIndex];
+          
+        columnStats[colIndex] = { mean, median };
+      }
+    }
+  }
+  
+  // Process data rows
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const newRow = [...row];
+    let hasMissingValues = false;
+    
+    // Check for missing values in this row
+    for (let j = 0; j < row.length; j++) {
+      const val = row[j];
+      if (val === undefined || val === null || val === '') {
+        hasMissingValues = true;
+        
+        // Replace based on method
+        if (method === 'mean' && columnStats[j]) {
+          newRow[j] = columnStats[j].mean;
+        } else if (method === 'median' && columnStats[j]) {
+          newRow[j] = columnStats[j].median;
+        } else if (method === 'value' && replacementValue !== undefined) {
+          newRow[j] = replacementValue;
+        }
+      }
+    }
+    
+    // Add row to result if it should be kept
+    if (method !== 'remove' || !hasMissingValues) {
+      result.push(newRow);
+    }
+  }
+  
+  return result;
 };
 
 // Prepare data for a bar chart

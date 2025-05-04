@@ -9,6 +9,95 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      datasets: {
+        Row: {
+          column_count: number
+          content: string
+          created_at: string
+          file_size: number
+          id: string
+          is_processed: boolean | null
+          metadata: Json | null
+          name: string
+          original_name: string
+          row_count: number
+          updated_at: string
+          user_id: string
+          validation_issues: Json | null
+          validation_status: string | null
+        }
+        Insert: {
+          column_count: number
+          content: string
+          created_at?: string
+          file_size: number
+          id?: string
+          is_processed?: boolean | null
+          metadata?: Json | null
+          name: string
+          original_name: string
+          row_count: number
+          updated_at?: string
+          user_id: string
+          validation_issues?: Json | null
+          validation_status?: string | null
+        }
+        Update: {
+          column_count?: number
+          content?: string
+          created_at?: string
+          file_size?: number
+          id?: string
+          is_processed?: boolean | null
+          metadata?: Json | null
+          name?: string
+          original_name?: string
+          row_count?: number
+          updated_at?: string
+          user_id?: string
+          validation_issues?: Json | null
+          validation_status?: string | null
+        }
+        Relationships: []
+      }
+      processed_datasets: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          name: string
+          original_dataset_id: string
+          processing_steps: Json | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          name: string
+          original_dataset_id: string
+          processing_steps?: Json | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          name?: string
+          original_dataset_id?: string
+          processing_steps?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processed_datasets_original_dataset_id_fkey"
+            columns: ["original_dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
