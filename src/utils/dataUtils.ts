@@ -397,6 +397,138 @@ export const calculateCorrelation = (xValues: number[], yValues: number[]): numb
   return numerator / denominator;
 };
 
+// Calculate Spearman's rank correlation coefficient
+export const calculateSpearmanCorrelation = (data: any[][], columnIndices: number[]): number[][] => {
+  // Extract numeric values for each column (skip header row)
+  const columnValues = columnIndices.map(colIndex => 
+    data.slice(1).map(row => parseFloat(row[colIndex])).filter(val => !isNaN(val))
+  );
+  
+  // Helper function to assign ranks
+  const assignRanks = (values: number[]): number[] => {
+    // Create pairs of [value, originalIndex]
+    const pairs = values.map((value, index) => ({ value, index }));
+    
+    // Sort by value
+    pairs.sort((a, b) => a.value - b.value);
+    
+    // Assign ranks with handling of ties
+    let currentRank = 1;
+    const ranks: number[] = new Array(values.length).fill(0);
+    
+    let i = 0;
+    while (i < pairs.length) {
+      const currentValue = pairs[i].value;
+      let j = i;
+      let tieCount = 0;
+      
+      // Count entries with the same value (ties)
+      while (j < pairs.length && pairs[j].value === currentValue) {
+        tieCount++;
+        j++;
+      }
+      
+      // Assign average rank for ties
+      const averageRank = currentRank + (tieCount - 1) / 2;
+      for (let k = i; k < j; k++) {
+        ranks[pairs[k].index] = averageRank;
+      }
+      
+      // Move to next distinct value
+      currentRank += tieCount;
+      i = j;
+    }
+    
+    return ranks;
+  };
+  
+  // Get ranked values for each column
+  const rankedColumns = columnValues.map(column => assignRanks(column));
+  
+  const n = columnIndices.length;
+  const matrix: number[][] = Array(n).fill(0).map(() => Array(n).fill(0));
+  
+  for (let i = 0; i < n; i++) {
+    // Diagonal elements are always 1
+    matrix[i][i] = 1;
+    
+    // Calculate correlation for each pair
+    for (let j = i + 1; j < n; j++) {
+      // Calculate Pearson correlation on the ranks
+      const correlation = calculateCorrelation(rankedColumns[i], rankedColumns[j]);
+      matrix[i][j] = correlation;
+      matrix[j][i] = correlation; // Symmetric matrix
+    }
+  }
+  
+  return matrix;
+};
+
+// Calculate Kendall's tau-b rank correlation coefficient
+export const calculateKendallCorrelation = (data: any[][], columnIndices: number[]): number[][] => {
+  // Extract numeric values for each column (skip header row)
+  const columnValues = columnIndices.map(colIndex => 
+    data.slice(1).map(row => parseFloat(row[colIndex])).filter(val => !isNaN(val))
+  );
+  
+  // Helper function to calculate Kendall's tau-b
+  const calculateKendallTau = (x: number[], y: number[]): number => {
+    if (x.length !== y.length || x.length === 0) return 0;
+    
+    const n = x.length;
+    let concordantPairs = 0;
+    let discordantPairs = 0;
+    let tiesInX = 0;
+    let tiesInY = 0;
+    let jointTies = 0;
+    
+    // Compare all possible pairs
+    for (let i = 0; i < n - 1; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const xDiff = x[i] - x[j];
+        const yDiff = y[i] - y[j];
+        
+        if (xDiff === 0 && yDiff === 0) {
+          jointTies++;
+        } else if (xDiff === 0) {
+          tiesInX++;
+        } else if (yDiff === 0) {
+          tiesInY++;
+        } else if ((xDiff > 0 && yDiff > 0) || (xDiff < 0 && yDiff < 0)) {
+          concordantPairs++;
+        } else {
+          discordantPairs++;
+        }
+      }
+    }
+    
+    // Calculate tau-b
+    const numerator = concordantPairs - discordantPairs;
+    const denominator = Math.sqrt((concordantPairs + discordantPairs + tiesInX) * 
+                                  (concordantPairs + discordantPairs + tiesInY));
+    
+    if (denominator === 0) return 0;
+    return numerator / denominator;
+  };
+  
+  const n = columnIndices.length;
+  const matrix: number[][] = Array(n).fill(0).map(() => Array(n).fill(0));
+  
+  for (let i = 0; i < n; i++) {
+    // Diagonal elements are always 1
+    matrix[i][i] = 1;
+    
+    // Calculate correlation for each pair
+    for (let j = i + 1; j < n; j++) {
+      const correlation = calculateKendallTau(columnValues[i], columnValues[j]);
+      matrix[i][j] = correlation;
+      matrix[j][i] = correlation; // Symmetric matrix
+    }
+  }
+  
+  return matrix;
+};
+
 // Calculate correlation matrix for multiple columns
 export const calculateCorrelationMatrix = (data: any[][], columnIndices: number[]): number[][] => {
   // Extract numeric values for each column (skip header row)
