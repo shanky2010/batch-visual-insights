@@ -8,9 +8,31 @@ interface ScatterPlotProps {
   title: string;
   xLabel?: string;
   yLabel?: string;
+  customColors?: {
+    pointColor?: string;
+    pointStroke?: string;
+    backgroundColor?: string;
+  };
+  domainRange?: {
+    xMin?: number;
+    xMax?: number;
+    yMin?: number;
+    yMax?: number;
+  };
 }
 
-const ScatterPlot: React.FC<ScatterPlotProps> = ({ data, title, xLabel = 'X', yLabel = 'Y' }) => {
+const ScatterPlot: React.FC<ScatterPlotProps> = ({ 
+  data, 
+  title, 
+  xLabel = 'X', 
+  yLabel = 'Y',
+  customColors = {
+    pointColor: '#9B87F5',
+    pointStroke: '#4E54C8',
+    backgroundColor: 'from-newpurple-900 to-newblue-800'
+  },
+  domainRange
+}) => {
   if (!data || !data.datasets || data.datasets.length === 0 || data.datasets[0].data.length === 0) {
     return (
       <Card className="w-full h-[400px] flex items-center justify-center bg-gradient-to-br from-newpurple-900 to-newblue-800 text-white">
@@ -19,8 +41,10 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({ data, title, xLabel = 'X', yL
     );
   }
   
+  const backgroundGradient = customColors.backgroundColor || 'from-newpurple-900 to-newblue-800';
+  
   return (
-    <Card className="w-full bg-gradient-to-br from-newpurple-900 to-newblue-800 text-white border-none shadow-2xl rounded-2xl overflow-hidden">
+    <Card className={`w-full bg-gradient-to-br ${backgroundGradient} text-white border-none shadow-2xl rounded-2xl overflow-hidden`}>
       <CardHeader>
         <CardTitle className="text-xl font-bold text-gray-100 bg-clip-text bg-gradient-to-r from-newpurple-400 to-newblue-400 text-transparent">
           {title}
@@ -36,7 +60,7 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({ data, title, xLabel = 'X', yL
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart
                 margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
-                className="bg-gradient-to-br from-newblue-900 to-newpurple-800 rounded-2xl p-4"
+                className={`bg-gradient-to-br from-newblue-900 to-newpurple-800 rounded-2xl p-4`}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis 
@@ -45,6 +69,7 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({ data, title, xLabel = 'X', yL
                   name={xLabel}
                   tick={{ fill: '#B4B4D7', fontSize: 13, fontWeight: 600 }}
                   tickCount={5}
+                  domain={domainRange ? [domainRange.xMin || 'auto', domainRange.xMax || 'auto'] : ['auto', 'auto']}
                 >
                   <Label 
                     value={`X: ${xLabel}`} 
@@ -59,6 +84,7 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({ data, title, xLabel = 'X', yL
                   name={yLabel}
                   tick={{ fill: '#B4B4D7', fontSize: 13, fontWeight: 600 }}
                   tickCount={5}
+                  domain={domainRange ? [domainRange.yMin || 'auto', domainRange.yMax || 'auto'] : ['auto', 'auto']}
                 >
                   <Label
                     value={`Y: ${yLabel}`}
@@ -99,8 +125,8 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({ data, title, xLabel = 'X', yL
                 <Scatter 
                   name={`Data Points (${xLabel} vs ${yLabel})`} 
                   data={data.datasets[0].data} 
-                  fill="#9B87F5"
-                  stroke="#4E54C8"
+                  fill={customColors.pointColor}
+                  stroke={customColors.pointStroke}
                   strokeWidth={1}
                   fillOpacity={0.81}
                   animationDuration={1500}
@@ -120,4 +146,3 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({ data, title, xLabel = 'X', yL
 };
 
 export default ScatterPlot;
-

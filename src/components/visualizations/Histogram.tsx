@@ -7,9 +7,16 @@ import { ChartData } from '@/utils/dataUtils';
 interface HistogramProps {
   data: ChartData;
   title: string;
+  customColor?: string;
+  showLabels?: boolean;
 }
 
-const Histogram: React.FC<HistogramProps> = ({ data, title }) => {
+const Histogram: React.FC<HistogramProps> = ({ 
+  data, 
+  title, 
+  customColor = '#4361EE',
+  showLabels = true
+}) => {
   if (!data || !data.labels || !data.datasets || data.datasets.length === 0) {
     return (
       <Card className="w-full h-[400px] flex items-center justify-center">
@@ -25,9 +32,11 @@ const Histogram: React.FC<HistogramProps> = ({ data, title }) => {
   }));
   
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
+    <Card className="w-full bg-gradient-to-br from-gray-50 to-white border-none shadow-lg rounded-xl overflow-hidden">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xl font-bold text-gray-800">
+          {title}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
@@ -37,20 +46,35 @@ const Histogram: React.FC<HistogramProps> = ({ data, title }) => {
                 data={chartData}
                 margin={{ top: 5, right: 30, left: 20, bottom: 70 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
                 <XAxis 
                   dataKey="name"
                   angle={-45}
                   textAnchor="end"
                   height={80}
                   tick={{ fontSize: 12 }}
+                  stroke="#718096"
+                  tickFormatter={showLabels ? undefined : () => ''}
                 />
-                <YAxis />
-                <Tooltip />
+                <YAxis 
+                  stroke="#718096"
+                  tickFormatter={(value) => value.toLocaleString()}
+                />
+                <Tooltip 
+                  formatter={(value) => [value, 'Frequency']}
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  }}
+                />
                 <Bar 
                   dataKey="frequency" 
-                  fill="#4361EE" 
+                  fill={customColor}
                   name="Frequency"
+                  radius={[4, 4, 0, 0]}
+                  barSize={30}
                 />
               </BarChart>
             </ResponsiveContainer>
