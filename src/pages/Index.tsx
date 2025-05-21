@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataFile } from '@/utils/dataUtils';
@@ -15,7 +16,6 @@ import DatasetList from '@/components/DatasetList';
 
 const Index = () => {
   const [files, setFiles] = useState<DataFile[]>([]);
-  const [selectedColumns, setSelectedColumns] = useState<{[key: string]: any}>({});
   const [activeTab, setActiveTab] = useState('upload');
   const { toast: toastHook } = useToast();
   const { session, user, loading } = useSession();
@@ -164,7 +164,7 @@ const Index = () => {
           
           <TabsContent value="analyze" className="space-y-8">
             {files.length > 0 ? (
-              <DataAnalysis files={files} selectedColumns={selectedColumns} />
+              <DataAnalysis files={files} />
             ) : (
               <Card className="border-none shadow-sm bg-gradient-to-r from-gray-50 to-white">
                 <CardContent className="p-12 text-center">

@@ -1,21 +1,15 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, ArrowUpDown, ChevronDown, ChevronUp, FileBarChart } from 'lucide-react';
+import { Download, ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from "@/components/ui/sonner";
 import { 
   ComparisonResult,
   DataFile, 
   compareDatasets, 
-  generateComparisonTableData,
-  calculateCorrelationMatrix,
-  calculateSpearmanCorrelation,
-  calculateKendallCorrelation
+  generateComparisonTableData
 } from '@/utils/dataUtils';
-import CorrelationMatrix from '@/components/CorrelationMatrix';
 
 interface DataComparisonProps {
   files: DataFile[];
@@ -28,20 +22,10 @@ const DataComparison: React.FC<DataComparisonProps> = ({ files, selectedColumns 
   const [isComparing, setIsComparing] = useState(false);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [activeTab, setActiveTab] = useState('comparison');
-  const [correlationMatrices, setCorrelationMatrices] = useState<{
-    fileId: string;
-    fileName: string;
-    columnNames: string[];
-    pearson: number[][];
-    spearman: number[][];
-    kendall: number[][];
-  }[]>([]);
-  const [correlationType, setCorrelationType] = useState<'pearson' | 'spearman' | 'kendall'>('pearson');
 
   const generateComparison = () => {
-    if (files.length < 1) {
-      toast.error("You need at least one dataset to analyze");
+    if (files.length < 2) {
+      toast.error("You need at least two datasets to compare");
       return;
     }
 
@@ -69,42 +53,21 @@ const DataComparison: React.FC<DataComparisonProps> = ({ files, selectedColumns 
           columnIndices: fileColumnMapping[file.id] || []
         }));
 
-      // Perform comparison if we have datasets
-      if (datasetsToCompare.length > 0) {
-        // For one dataset, we'll just get basic statistics
-        // For multiple datasets, we'll get comparison results
-        const results = compareDatasets(datasetsToCompare);
-        setComparisonResults(results);
-        
-        // Generate table data
-        const data = generateComparisonTableData(results);
-        setTableData(data);
-        
-        // Generate correlation matrices for each dataset
-        const matrices = datasetsToCompare.map(dataset => {
-          const columnNames = dataset.columnIndices.map(idx => dataset.headers[idx]);
-          
-          // Calculate correlation matrices using different methods
-          const pearsonMatrix = calculateCorrelationMatrix(dataset.data, dataset.columnIndices);
-          const spearmanMatrix = calculateSpearmanCorrelation(dataset.data, dataset.columnIndices);
-          const kendallMatrix = calculateKendallCorrelation(dataset.data, dataset.columnIndices);
-          
-          return {
-            fileId: dataset.id,
-            fileName: dataset.name,
-            columnNames,
-            pearson: pearsonMatrix,
-            spearman: spearmanMatrix,
-            kendall: kendallMatrix
-          };
-        });
-        
-        setCorrelationMatrices(matrices);
-        
-        toast.success(`Analyzed ${datasetsToCompare.length} dataset(s) successfully`);
-      } else {
-        toast.error("Please select columns from at least one dataset");
+      if (datasetsToCompare.length < 2) {
+        toast.error("Please select columns from at least two different datasets");
+        setIsComparing(false);
+        return;
       }
+
+      // Perform comparison
+      const results = compareDatasets(datasetsToCompare);
+      setComparisonResults(results);
+      
+      // Generate table data
+      const data = generateComparisonTableData(results);
+      setTableData(data);
+      
+      toast.success(`Compared ${datasetsToCompare.length} datasets successfully`);
     } catch (error) {
       console.error("Error comparing datasets:", error);
       toast.error("Failed to compare datasets");
@@ -212,101 +175,6 @@ const DataComparison: React.FC<DataComparisonProps> = ({ files, selectedColumns 
       toast.error("Failed to export comparison");
     }
   };
-  
-  const exportReport = () => {
-    try {
-      let html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Dataset Analysis Report</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
-            h1 { color: #333; }
-            h2 { color: #555; margin-top: 30px; }
-            table { border-collapse: collapse; width: 100%; margin: 20px 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
-            .highlight-positive { color: green; }
-            .highlight-negative { color: red; }
-            .footer { margin-top: 40px; font-size: 12px; color: #777; }
-          </style>
-        </head>
-        <body>
-          <h1>Dataset Analysis Report</h1>
-          <p>Generated on ${new Date().toLocaleString()}</p>
-      `;
-      
-      // Add comparison table
-      if (tableData.length > 0) {
-        html += `<h2>Statistical Comparison</h2>`;
-        html += `<table>`;
-        html += `<tr><th>Column</th>`;
-        
-        // Add headers based on first row
-        const firstRow = tableData[0];
-        Object.keys(firstRow).forEach(key => {
-          if (key !== 'columnName') {
-            html += `<th>${key}</th>`;
-          }
-        });
-        html += `</tr>`;
-        
-        // Add data rows
-        tableData.forEach(row => {
-          html += `<tr>`;
-          html += `<td>${row.columnName}</td>`;
-          
-          Object.keys(row).forEach(key => {
-            if (key !== 'columnName') {
-              let value = row[key];
-              let className = '';
-              
-              // Add highlighting for differences
-              if (key.startsWith('diff-')) {
-                const numValue = typeof value === 'string' ? parseFloat(value.replace(/[+]/g, '')) : value;
-                if (!isNaN(numValue)) {
-                  if (numValue > 0) className = 'highlight-positive';
-                  else if (numValue < 0) className = 'highlight-negative';
-                }
-              }
-              
-              html += `<td class="${className}">${value}</td>`;
-            }
-          });
-          
-          html += `</tr>`;
-        });
-        
-        html += `</table>`;
-      }
-      
-      // Add footer and close tags
-      html += `
-          <div class="footer">
-            <p>This report was generated automatically by the Data Analysis Tool.</p>
-          </div>
-        </body>
-        </html>
-      `;
-      
-      // Create and download the HTML file
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `dataset-analysis-report-${new Date().toISOString().split('T')[0]}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast.success("Analysis report exported as HTML");
-    } catch (error) {
-      console.error("Error exporting report:", error);
-      toast.error("Failed to export report");
-    }
-  };
 
   const getSortIcon = (field: string) => {
     if (sortField !== field) return <ArrowUpDown className="ml-2 h-4 w-4" />;
@@ -332,165 +200,120 @@ const DataComparison: React.FC<DataComparisonProps> = ({ files, selectedColumns 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">Dataset Analysis</h2>
+        <h2 className="text-xl font-semibold text-gray-900">Dataset Comparison</h2>
         <div className="flex gap-2">
           <Button 
             onClick={generateComparison}
-            disabled={isComparing || Object.keys(selectedColumns).length === 0}
+            disabled={isComparing || Object.keys(selectedColumns).length === 0 || files.length < 2}
             variant="default"
           >
-            {isComparing ? 'Analyzing...' : 'Analyze Selected Columns'}
-          </Button>
-          
-          <Button
-            onClick={exportReport}
-            disabled={tableData.length === 0}
-            variant="outline"
-          >
-            <FileBarChart className="mr-2 h-4 w-4" />
-            Export Report
+            {isComparing ? 'Comparing...' : 'Compare Selected Columns'}
           </Button>
           
           <Button
             onClick={exportComparison}
-            disabled={tableData.length === 0}
+            disabled={comparisonResults.length === 0}
             variant="outline"
           >
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            Export Comparison
           </Button>
         </div>
       </div>
       
       {tableData.length > 0 ? (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="comparison">Statistical Comparison</TabsTrigger>
-            <TabsTrigger value="correlation">Correlation Analysis</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="comparison" className="mt-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Comparison Results</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>Comparison Results</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead 
+                    className="cursor-pointer"
+                    onClick={() => handleSort('columnName')}
+                  >
+                    Column Name {getSortIcon('columnName')}
+                  </TableHead>
+                  
+                  {/* Dynamic headers for datasets */}
+                  {comparisonResults[0]?.datasets.map(dataset => (
+                    <React.Fragment key={dataset.datasetId}>
                       <TableHead 
                         className="cursor-pointer"
-                        onClick={() => handleSort('columnName')}
+                        onClick={() => handleSort(`${dataset.datasetName}-mean`)}
                       >
-                        Column Name {getSortIcon('columnName')}
+                        {dataset.datasetName} Mean {getSortIcon(`${dataset.datasetName}-mean`)}
                       </TableHead>
-                      
-                      {/* Dynamic headers for datasets */}
-                      {comparisonResults[0]?.datasets.map(dataset => (
-                        <React.Fragment key={dataset.datasetId}>
-                          <TableHead 
-                            className="cursor-pointer"
-                            onClick={() => handleSort(`${dataset.datasetName}-mean`)}
-                          >
-                            {dataset.datasetName} Mean {getSortIcon(`${dataset.datasetName}-mean`)}
-                          </TableHead>
-                          <TableHead 
-                            className="cursor-pointer"
-                            onClick={() => handleSort(`${dataset.datasetName}-median`)}
-                          >
-                            {dataset.datasetName} Median {getSortIcon(`${dataset.datasetName}-median`)}
-                          </TableHead>
-                          <TableHead>StdDev</TableHead>
-                          <TableHead>Min</TableHead>
-                          <TableHead>Max</TableHead>
-                        </React.Fragment>
-                      ))}
-                      
-                      {/* Show difference columns if there are exactly 2 datasets */}
-                      {comparisonResults[0]?.differences.length > 0 && (
-                        <>
-                          <TableHead 
-                            className="cursor-pointer"
-                            onClick={() => handleSort('diff-mean')}
-                          >
-                            Mean Diff {getSortIcon('diff-mean')}
-                          </TableHead>
-                          <TableHead 
-                            className="cursor-pointer"
-                            onClick={() => handleSort('diff-median')}
-                          >
-                            Median Diff {getSortIcon('diff-median')}
-                          </TableHead>
-                          <TableHead>StdDev Diff</TableHead>
-                          <TableHead>Min Diff</TableHead>
-                          <TableHead>Max Diff</TableHead>
-                        </>
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tableData.map((row, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="font-medium">{row.columnName}</TableCell>
-                        
-                        {/* Dynamic cells for each dataset */}
-                        {Object.keys(row).filter(key => key !== 'columnName' && !key.startsWith('diff-')).map(key => (
-                          <TableCell key={key}>{row[key]}</TableCell>
-                        ))}
-                        
-                        {/* Difference cells if available */}
-                        {Object.keys(row).filter(key => key.startsWith('diff-')).map(key => (
-                          <TableCell 
-                            key={key}
-                            className={getCellStyle(key, row[key])}
-                          >
-                            {row[key]}
-                          </TableCell>
-                        ))}
-                      </TableRow>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => handleSort(`${dataset.datasetName}-median`)}
+                      >
+                        {dataset.datasetName} Median {getSortIcon(`${dataset.datasetName}-median`)}
+                      </TableHead>
+                      <TableHead>StdDev</TableHead>
+                      <TableHead>Min</TableHead>
+                      <TableHead>Max</TableHead>
+                    </React.Fragment>
+                  ))}
+                  
+                  {/* Show difference columns if there are exactly 2 datasets */}
+                  {comparisonResults[0]?.differences.length > 0 && (
+                    <>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => handleSort('diff-mean')}
+                      >
+                        Mean Diff {getSortIcon('diff-mean')}
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => handleSort('diff-median')}
+                      >
+                        Median Diff {getSortIcon('diff-median')}
+                      </TableHead>
+                      <TableHead>StdDev Diff</TableHead>
+                      <TableHead>Min Diff</TableHead>
+                      <TableHead>Max Diff</TableHead>
+                    </>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tableData.map((row, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="font-medium">{row.columnName}</TableCell>
+                    
+                    {/* Dynamic cells for each dataset */}
+                    {Object.keys(row).filter(key => key !== 'columnName' && !key.startsWith('diff-')).map(key => (
+                      <TableCell key={key}>{row[key]}</TableCell>
                     ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="correlation" className="mt-4 space-y-6">
-            {correlationMatrices.length > 0 ? (
-              correlationMatrices.map(matrix => (
-                <CorrelationMatrix
-                  key={matrix.fileId}
-                  fileName={matrix.fileName}
-                  columnNames={matrix.columnNames}
-                  correlationMatrix={
-                    correlationType === 'pearson' ? matrix.pearson :
-                    correlationType === 'spearman' ? matrix.spearman :
-                    matrix.kendall
-                  }
-                  correlationType={correlationType}
-                  onCorrelationTypeChange={setCorrelationType}
-                />
-              ))
-            ) : (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <p className="text-gray-500">
-                    No correlation data available. Select columns to analyze.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+                    
+                    {/* Difference cells if available */}
+                    {Object.keys(row).filter(key => key.startsWith('diff-')).map(key => (
+                      <TableCell 
+                        key={key}
+                        className={getCellStyle(key, row[key])}
+                      >
+                        {row[key]}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       ) : (
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-gray-500">
-              {files.length < 1 
-                ? "You need at least one dataset to analyze" 
+              {files.length < 2 
+                ? "You need at least two datasets to compare" 
                 : Object.keys(selectedColumns).length === 0 
-                  ? "Select columns to analyze" 
-                  : "Click 'Analyze Selected Columns' to generate statistics"}
+                  ? "Select columns to compare" 
+                  : "Click 'Compare Selected Columns' to generate a comparison"}
             </p>
           </CardContent>
         </Card>
